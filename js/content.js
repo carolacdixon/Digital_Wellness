@@ -6,7 +6,7 @@ async function shouldShowReminder() {
         const result = await chrome.storage.sync.get('sites');
         
         if (!result.sites || result.sites.length === 0) {
-            return true;
+            return false;
         }
 
         const sites = result.sites;
