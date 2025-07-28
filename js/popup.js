@@ -1,11 +1,6 @@
 // Default sites that are monitored
 const DEFAULT_SITES = [
-  'youtube.com',
-  'tiktok.com',
-  'twitter.com',
-  'x.com',
-  'instagram.com',
-  'facebook.com'
+  'instagram.com'
 ];
 
 // Load sites from storage or use defaults
