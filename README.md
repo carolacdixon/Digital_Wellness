@@ -1,44 +1,30 @@
-# Twice - Think Twice Before Social Media
+# AI Digital Wellness Companion
 
-A Chrome extension that helps you be more mindful of your social media usage by prompting you to think twice before visiting social media sites. It's designed to reduce mindless scrolling and promote intentional browsing habits.
+> A Chrome extension that helps users navigate social media mindfully through AI-powered, values-based interventions.
 
-<img width="1580" alt="image" src="https://github.com/user-attachments/assets/cce55789-8ae5-4802-afe3-cbf6358de948" />
+## Project Status
+🚧 **Active Development** - MSc Thesis Project 
 
+## Overview
+This browser extension uses computer vision and conversational AI to provide personalized digital wellness interventions on social media platforms (Instagram/TikTok). Unlike traditional blockers, it acts as a digital extension of users' own values and intentions.
 
+## Current Development Phase
+**Phase 2: MVP Development (Jul 29 - Sep 8, 2024)**
+- [x] Initial codebase setup (Jul 28)
+- [ ] Browser extension foundation (Week 1: Jul 29-Aug 4)
+- [ ] User onboarding system (Week 2: Aug 5-11)
+- [ ] Privacy-first content analysis (Week 3: Aug 12-18)
+- [ ] AI intervention system (Week 4: Aug 19-25)
+- [ ] Mindful interface design (Week 5: Aug 26-Sep 1)
+- [ ] Analytics implementation (Week 6: Sep 2-8)
 
-## Features
+## Technical Stack
+- Chrome Extension (Manifest V3)
+- React 18 + TypeScript
+- TensorFlow.js (client-side image analysis)
+- OpenAI API (GPT-4)
+- Tailwind CSS
+- Chrome Storage API
 
-- Displays a gentle reminder when you attempt to visit social media sites
-- Helps you pause and reflect on whether you really need to check social media
-- Promotes mindful internet usage and better digital habits
-
-## Installation
-
-1. Clone this repository or download the source code
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" by toggling the switch in the top right corner
-4. Click "Load unpacked" button
-5. Select the directory containing the extension files (where manifest.json is located)
-
-The extension icon should now appear in your Chrome toolbar.
-
-## How It Works
-
-When you try to visit a social media site, Twice will show a popup asking you to pause and reflect. This small interruption helps you:
-- Be more conscious of your browsing habits
-- Reduce impulsive social media checking
-- Make intentional decisions about your online time
-
-## Development
-
-The extension consists of:
-- `manifest.json`: Extension configuration
-- `popup.html`: Main extension interface
-- `css/`: Styling files
-- `js/`: JavaScript functionality
-
-To make changes, simply edit the files and reload the extension in Chrome by clicking the refresh icon on the extension card in `chrome://extensions/`.
-
-## License
-
-MIT
+## Acknowledgments
+Initial extension architecture adapted from [Twice](https://github.com/[username]/twice) - a mindful browsing reminder tool.
