@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mindful Browsing Options</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1C1C1E;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .threshold-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        
+        .label-text {
+            flex-grow: 1;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        .range-value {
+            width: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #2563eb;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        
+        .save-button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+        
+        .save-button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            color: #10b981;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .status.show {
+            opacity: 1;
+        }
+        
+        .description {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mindful Browsing Settings</h1>
+        <p class="subtitle">Customize when you receive mindfulness reminders based on your content consumption</p>
+        
+        <div class="section">
+            <h2>Content Thresholds</h2>
+            <p class="description">Set limits for different types of content before receiving a reminder</p>
+            
+            <div class="threshold-group">
+                <label>
+                    <span class="label-text">Posts viewed</span>
+                    <div class="input-group">
+                        <input type="range" id="postsRange" min="5" max="50" value="10">
+                        <span class="range-value" id="postsValue">10</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="threshold-group">
+                <label>
+                    <span class="label-text">Stories viewed</span>
+                    <div class="input-group">
+                        <input type="range" id="storiesRange" min="3" max="30" value="5">
+                        <span class="range-value" id="storiesValue">5</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="threshold-group">
+                <label>
+                    <span class="label-text">Reels viewed</span>
+                    <div class="input-group">
+                        <input type="range" id="reelsRange" min="3" max="30" value="5">
+                        <span class="range-value" id="reelsValue">5</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="threshold-group">
+                <label>
+                    <span class="label-text">Time spent (minutes)</span>
+                    <div class="input-group">
+                        <input type="range" id="timeRange" min="1" max="30" value="5">
+                        <span class="range-value" id="timeValue">5</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Advanced Features</h2>
+            
+            <div class="toggle-group">
+                <span>Enable text analysis</span>
+                <label class="toggle">
+                    <input type="checkbox" id="textAnalysis" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <p class="description">Analyze post content to identify potentially harmful patterns (comparison, negative content)</p>
+            
+            <div class="toggle-group">
+                <span>Weighted scoring</span>
+                <label class="toggle">
+                    <input type="checkbox" id="weightedScoring" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <p class="description">Give higher weight to content that may impact well-being</p>
+            
+            <div class="threshold-group" id="weightedThresholdGroup">
+                <label>
+                    <span class="label-text">Weighted threshold</span>
+                    <div class="input-group">
+                        <input type="range" id="weightedRange" min="10" max="50" value="25">
+                        <span class="range-value" id="weightedValue">25</span>
+                    </div>
+                </label>
+                <p class="description">Lower values = more sensitive to harmful content</p>
+            </div>
+        </div>
+        
+        <button class="save-button" id="saveButton">Save Settings</button>
+        <div class="status" id="status">Settings saved!</div>
+    </div>
+    
+    <script>
+        // Load saved settings
+        chrome.storage.sync.get(['contentThresholds', 'advancedFeatures'], function(result) {
+            if (result.contentThresholds) {
+                document.getElementById('postsRange').value = result.contentThresholds.postsViewed || 10;
+                document.getElementById('storiesRange').value = result.contentThresholds.storiesViewed || 5;
+                document.getElementById('reelsRange').value = result.contentThresholds.reelsViewed || 5;
+                document.getElementById('timeRange').value = (result.contentThresholds.timeSpent || 300) / 60;
+                
+                updateRangeValues();
+            }
+            
+            if (result.advancedFeatures) {
+                document.getElementById('textAnalysis').checked = result.advancedFeatures.textAnalysis !== false;
+                document.getElementById('weightedScoring').checked = result.advancedFeatures.weightedScoring !== false;
+                document.getElementById('weightedRange').value = result.advancedFeatures.weightedThreshold || 25;
+                updateWeightedVisibility();
+            }
+        });
+        
+        // Update range display values
+        function updateRangeValues() {
+            document.getElementById('postsValue').textContent = document.getElementById('postsRange').value;
+            document.getElementById('storiesValue').textContent = document.getElementById('storiesRange').value;
+            document.getElementById('reelsValue').textContent = document.getElementById('reelsRange').value;
+            document.getElementById('timeValue').textContent = document.getElementById('timeRange').value;
+            document.getElementById('weightedValue').textContent = document.getElementById('weightedRange').value;
+        }
+        
+        // Add event listeners for range inputs
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('input', updateRangeValues);
+        });
+        
+        // Show/hide weighted threshold based on toggle
+        function updateWeightedVisibility() {
+            const isEnabled = document.getElementById('weightedScoring').checked;
+            document.getElementById('weightedThresholdGroup').style.display = isEnabled ? 'block' : 'none';
+        }
+        
+        document.getElementById('weightedScoring').addEventListener('change', updateWeightedVisibility);
+        
+        // Save settings
+        document.getElementById('saveButton').addEventListener('click', function() {
+            const settings = {
+                contentThresholds: {
+                    postsViewed: parseInt(document.getElementById('postsRange').value),
+                    storiesViewed: parseInt(document.getElementById('storiesRange').value),
+                    reelsViewed: parseInt(document.getElementById('reelsRange').value),
+                    timeSpent: parseInt(document.getElementById('timeRange').value) * 60, // Convert to seconds
+                    scrollDepth: 3000 // Keep default
+                },
+                advancedFeatures: {
+                    textAnalysis: document.getElementById('textAnalysis').checked,
+                    weightedScoring: document.getElementById('weightedScoring').checked,
+                    weightedThreshold: parseInt(document.getElementById('weightedRange').value)
+                }
+            };
+            
+            chrome.storage.sync.set(settings, function() {
+                // Show success message
+                const status = document.getElementById('status');
+                status.classList.add('show');
+                setTimeout(() => {
+                    status.classList.remove('show');
+                }, 2000);
+            });
+        });
+        
+        // Initialize
+        updateRangeValues();
+        updateWeightedVisibility();
+    </script>
+</body>
+</html>

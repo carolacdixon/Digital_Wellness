@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Twice",
-  "version": "1.0",
-  "description": "Reminds you to stay focused when visiting social media sites",
+  "name": "AI Digital Wellness Companion",
+  "version": "2.0",
+  "description": "AI-powered mindful browsing assistant that helps you navigate social media intentionally",
   "permissions": [
     "activeTab",
     "storage",
@@ -21,8 +21,15 @@
   "content_scripts": [
     {
       "matches": ["*://*.instagram.com/*"],
-      "js": ["js/content.js"],
-      "css": ["css/style.css"]
+      "js": ["js/textAnalysis.js", "js/content.js"],
+      "css": ["css/style.css"],
+      "run_at": "document_end"
     }
-  ]
+  ],
+  "options_page": "options.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }

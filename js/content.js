@@ -1,4 +1,61 @@
-const DELAY_TIME = 30
+// js/content.js - Integrated version with text analysis
+const DELAY_TIME = 30;
+
+// Default configuration
+const DEFAULT_THRESHOLDS = {
+    postsViewed: 10,
+    storiesViewed: 5,
+    reelsViewed: 5,
+    timeSpent: 300,
+    scrollDepth: 3000
+};
+
+const DEFAULT_FEATURES = {
+    textAnalysis: true,
+    weightedScoring: true,
+    weightedThreshold: 25
+};
+
+// Content tracking state
+let contentMetrics = {
+    postsViewed: new Set(),
+    storiesViewed: new Set(),
+    reelsViewed: new Set(),
+    timeSpent: 0,
+    scrollDepth: 0,
+    sessionStart: Date.now(),
+    lastInteraction: Date.now()
+};
+
+let viewedContentIds = new Set();
+let reminderShown = false;
+let contentObserver = null;
+let enhancedTracker = null;
+let userSettings = {
+    thresholds: DEFAULT_THRESHOLDS,
+    features: DEFAULT_FEATURES
+};
+
+// Load user settings
+async function loadSettings() {
+    try {
+        const result = await chrome.storage.sync.get(['contentThresholds', 'advancedFeatures']);
+        if (result.contentThresholds) {
+            userSettings.thresholds = { ...DEFAULT_THRESHOLDS, ...result.contentThresholds };
+        }
+        if (result.advancedFeatures) {
+            userSettings.features = { ...DEFAULT_FEATURES, ...result.advancedFeatures };
+        }
+        
+        // Initialize enhanced tracker if text analysis is enabled
+        if (userSettings.features.textAnalysis && window.EnhancedContentTracker) {
+            enhancedTracker = new window.EnhancedContentTracker();
+            enhancedTracker.weightedThreshold = userSettings.features.weightedThreshold;
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
 
 async function shouldShowReminder() {
     try {
@@ -20,6 +77,171 @@ async function shouldShowReminder() {
     }
 }
 
+// Check if content threshold has been reached
+function hasReachedThreshold() {
+    const timeSpent = (Date.now() - contentMetrics.sessionStart) / 1000;
+    
+    // Check weighted threshold if enabled
+    if (userSettings.features.weightedScoring && enhancedTracker) {
+        return enhancedTracker.hasReachedWeightedThreshold(contentMetrics);
+    }
+    
+    // Otherwise use simple thresholds
+    return (
+        contentMetrics.postsViewed.size >= userSettings.thresholds.postsViewed ||
+        contentMetrics.storiesViewed.size >= userSettings.thresholds.storiesViewed ||
+        contentMetrics.reelsViewed.size >= userSettings.thresholds.reelsViewed ||
+        timeSpent >= userSettings.thresholds.timeSpent ||
+        contentMetrics.scrollDepth >= userSettings.thresholds.scrollDepth
+    );
+}
+
+// Extract unique ID from Instagram post/story/reel
+function extractContentId(element) {
+    const article = element.closest('article');
+    if (article) {
+        const postLink = article.querySelector('a[href*="/p/"], a[href*="/reel/"]');
+        if (postLink) {
+            const match = postLink.href.match(/\/(p|reel)\/([^\/]+)/);
+            if (match) return match[2];
+        }
+    }
+    
+    const storyContainer = element.closest('[role="button"][aria-label*="story"]');
+    if (storyContainer) {
+        return `story-${storyContainer.getAttribute('aria-label')}`;
+    }
+    
+    const rect = element.getBoundingClientRect();
+    return `${rect.top}-${rect.left}-${element.innerHTML.substring(0, 50)}`;
+}
+
+// Determine content type
+function getContentType(element) {
+    if (element.querySelector('video') && window.location.pathname.includes('/reels')) {
+        return 'reel';
+    }
+    
+    if (element.closest('[aria-label*="story"]') || window.location.pathname.includes('/stories')) {
+        return 'story';
+    }
+    
+    return 'post';
+}
+
+// Analyze visible content on the page
+function analyzeVisibleContent() {
+    if (reminderShown) return;
+    
+    const contentSelectors = [
+        'article',
+        '[role="button"][aria-label*="story"]',
+        'video',
+        '[aria-label="Timeline: "]'
+    ];
+    
+    contentSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        
+        elements.forEach(element => {
+            const rect = element.getBoundingClientRect();
+            const isVisible = (
+                rect.top >= 0 &&
+                rect.bottom <= window.innerHeight &&
+                rect.height > 100
+            );
+            
+            if (isVisible) {
+                const contentId = extractContentId(element);
+                
+                if (!viewedContentIds.has(contentId)) {
+                    viewedContentIds.add(contentId);
+                    const contentType = getContentType(element);
+                    
+                    // Track content with enhanced analysis if enabled
+                    if (enhancedTracker && userSettings.features.textAnalysis) {
+                        enhancedTracker.analyzeAndTrackContent(element, contentId, contentType);
+                    }
+                    
+                    switch(contentType) {
+                        case 'post':
+                            contentMetrics.postsViewed.add(contentId);
+                            console.log(`Post viewed: ${contentMetrics.postsViewed.size}/${userSettings.thresholds.postsViewed}`);
+                            break;
+                        case 'story':
+                            contentMetrics.storiesViewed.add(contentId);
+                            console.log(`Story viewed: ${contentMetrics.storiesViewed.size}/${userSettings.thresholds.storiesViewed}`);
+                            break;
+                        case 'reel':
+                            contentMetrics.reelsViewed.add(contentId);
+                            console.log(`Reel viewed: ${contentMetrics.reelsViewed.size}/${userSettings.thresholds.reelsViewed}`);
+                            break;
+                    }
+                    
+                    if (hasReachedThreshold()) {
+                        showMindfulReminder();
+                    }
+                }
+            }
+        });
+    });
+}
+
+// Track scroll depth
+function trackScrolling() {
+    let lastScrollY = window.scrollY;
+    
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        if (currentScrollY > lastScrollY) {
+            contentMetrics.scrollDepth += (currentScrollY - lastScrollY);
+        }
+        lastScrollY = currentScrollY;
+        
+        analyzeVisibleContent();
+    });
+}
+
+// Set up mutation observer for dynamic content
+function setupContentObserver() {
+    if (contentObserver) {
+        contentObserver.disconnect();
+    }
+    
+    contentObserver = new MutationObserver((mutations) => {
+        clearTimeout(contentMetrics.analysisTimeout);
+        contentMetrics.analysisTimeout = setTimeout(() => {
+            analyzeVisibleContent();
+        }, 500);
+    });
+    
+    const targetNode = document.querySelector('main') || document.body;
+    contentObserver.observe(targetNode, {
+        childList: true,
+        subtree: true,
+        attributes: false
+    });
+}
+
+// Show the mindful reminder when threshold is reached
+async function showMindfulReminder() {
+    if (reminderShown || !(await shouldShowReminder())) {
+        return;
+    }
+    
+    reminderShown = true;
+    
+    console.log('Content consumption metrics:', {
+        posts: contentMetrics.postsViewed.size,
+        stories: contentMetrics.storiesViewed.size,
+        reels: contentMetrics.reelsViewed.size,
+        timeSpent: (Date.now() - contentMetrics.sessionStart) / 1000,
+        scrollDepth: contentMetrics.scrollDepth
+    });
+    
+    createReminderDialog();
+}
+
 async function createReminderDialog() {
     if (!document.body || document.documentElement.tagName.toLowerCase() === 'svg') {
         return;
@@ -29,17 +251,30 @@ async function createReminderDialog() {
         return;
     }
 
-    const shouldShow = await shouldShowReminder();
-    
-    if (!shouldShow) {
-        return;
-    }
-
     const dialog = document.createElement('div');
     dialog.className = 'focus-reminder';
+    
+    // Get consumption summary
+    let summaryHtml = '';
+    if (enhancedTracker && userSettings.features.textAnalysis) {
+        const summary = enhancedTracker.getConsumptionSummary(contentMetrics);
+        summaryHtml = `
+            <p>You've viewed ${summary.postsViewed} posts and spent ${summary.timeSpent} minutes here.</p>
+            ${summary.dominantContent !== 'general' ? 
+                `<p>You've been looking at a lot of ${summary.dominantContent} content.</p>` : ''}
+            ${summary.negativeContent > 2 ? 
+                `<p>Some of the content you've viewed contained negative themes.</p>` : ''}
+        `;
+    } else {
+        const postsCount = contentMetrics.postsViewed.size;
+        const timeSpent = Math.floor((Date.now() - contentMetrics.sessionStart) / 60000);
+        summaryHtml = `<p>You've viewed ${postsCount} posts and spent ${timeSpent} minutes here.</p>`;
+    }
+    
     dialog.innerHTML = `
         <div class="focus-reminder-content">
             <h2>Mindful Moment</h2>
+            ${summaryHtml}
             <p>Are you spending your time intentionally?</p>
             
             <div id="timer-selection" class="section">
@@ -76,15 +311,18 @@ async function createReminderDialog() {
         
         countdownInterval = setInterval(() => {
             timeLeft--;
-            const mins = Math.floor(timeLeft / DELAY_TIME);
-            const secs = timeLeft % DELAY_TIME;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
             countdownElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
             
             if (timeLeft <= 0) {
                 clearInterval(countdownInterval);
                 dialog.style.opacity = '0';
                 dialog.style.transform = 'translate(-50%, -50%) scale(0.95)';
-                setTimeout(() => dialog.remove(), 200);
+                setTimeout(() => {
+                    dialog.remove();
+                    resetMetrics();
+                }, 200);
             }
         }, 1000);
     });
@@ -109,21 +347,78 @@ async function createReminderDialog() {
     }, 50);
 }
 
-function initializeReminder() {
+// Reset metrics for a new session
+function resetMetrics() {
+    contentMetrics = {
+        postsViewed: new Set(),
+        storiesViewed: new Set(),
+        reelsViewed: new Set(),
+        timeSpent: 0,
+        scrollDepth: 0,
+        sessionStart: Date.now(),
+        lastInteraction: Date.now()
+    };
+    viewedContentIds.clear();
+    reminderShown = false;
+    
+    if (enhancedTracker) {
+        enhancedTracker.textAnalysisResults.clear();
+    }
+}
+
+// Initialize content tracking
+async function initializeContentTracking() {
     if (!document.body || document.documentElement.tagName.toLowerCase() === 'svg') {
         return;
     }
-    createReminderDialog();
+    
+    // Load settings first
+    await loadSettings();
+    
+    // Set up observers and listeners
+    setupContentObserver();
+    trackScrolling();
+    
+    // Initial content analysis
+    setTimeout(() => {
+        analyzeVisibleContent();
+    }, 2000);
+    
+    // Periodic analysis for time-based threshold
+    setInterval(() => {
+        if (hasReachedThreshold() && !reminderShown) {
+            showMindfulReminder();
+        }
+    }, 30000);
 }
 
+// Handle messages from extension
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'checkReminder') {
-        createReminderDialog();
+        if (hasReachedThreshold()) {
+            showMindfulReminder();
+        }
+    } else if (message.action === 'getMetrics') {
+        sendResponse({
+            ...contentMetrics,
+            postsViewed: contentMetrics.postsViewed.size,
+            storiesViewed: contentMetrics.storiesViewed.size,
+            reelsViewed: contentMetrics.reelsViewed.size,
+            timeSpent: (Date.now() - contentMetrics.sessionStart) / 1000
+        });
     }
 });
 
+// Listen for settings changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && (changes.contentThresholds || changes.advancedFeatures)) {
+        loadSettings();
+    }
+});
+
+// Initialize when page is ready
 if (document.readyState === 'complete') {
-    initializeReminder();
+    initializeContentTracking();
 } else {
-    window.addEventListener('load', initializeReminder);
+    window.addEventListener('load', initializeContentTracking);
 }

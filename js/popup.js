@@ -123,3 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSiteList();
   setupAddButton();
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const optionsLink = document.getElementById('optionsLink');
+  if (optionsLink) {
+    optionsLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      chrome.runtime.openOptionsPage();
+    });
+  }
+});
