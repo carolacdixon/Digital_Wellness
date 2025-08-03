@@ -1,4 +1,4 @@
-// js/content.js - Integrated version with text analysis
+// js/content.js - Updated with overlay functionality
 const DELAY_TIME = 30;
 
 // Default configuration
@@ -273,7 +273,10 @@ async function createReminderDialog() {
     
     dialog.innerHTML = `
         <div class="focus-reminder-content">
-            <h2>Mindful Moment</h2>
+            <div class="focus-reminder-header">
+                <h2>Mindful Moment</h2>
+                <button class="minimize-btn" title="Minimize">›</button>
+            </div>
             ${summaryHtml}
             <p>Are you spending your time intentionally?</p>
             
@@ -297,6 +300,12 @@ async function createReminderDialog() {
         </div>
     `;
 
+    // Add minimize functionality
+    const minimizeBtn = dialog.querySelector('.minimize-btn');
+    minimizeBtn.addEventListener('click', () => {
+        dialog.classList.toggle('minimized');
+    });
+
     let countdownInterval;
     const timerDisplay = dialog.querySelector('#timer-display');
     const countdownElement = dialog.querySelector('#countdown');
@@ -318,7 +327,6 @@ async function createReminderDialog() {
             if (timeLeft <= 0) {
                 clearInterval(countdownInterval);
                 dialog.style.opacity = '0';
-                dialog.style.transform = 'translate(-50%, -50%) scale(0.95)';
                 setTimeout(() => {
                     dialog.remove();
                     resetMetrics();
@@ -332,19 +340,12 @@ async function createReminderDialog() {
             clearInterval(countdownInterval);
         }
         dialog.style.opacity = '0';
-        dialog.style.transform = 'translate(-50%, -50%) scale(0.95)';
         setTimeout(() => {
             chrome.runtime.sendMessage({ action: 'closeTab' });
         }, 200);
     });
 
-    dialog.style.opacity = '0';
-    dialog.style.transition = 'all 0.2s ease';
     document.body.appendChild(dialog);
-    
-    setTimeout(() => {
-        dialog.style.opacity = '1';
-    }, 50);
 }
 
 // Reset metrics for a new session

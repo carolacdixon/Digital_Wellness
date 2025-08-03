@@ -4,17 +4,18 @@
   all: initial !important;
   position: fixed !important;
   display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  top: 0% !important;
-  left: 0% !important;
-  background: rgba(28, 28, 30, 0.98) !important;
-  padding: 32px !important;
-  z-index: 2147483647 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+  top: 80px !important; /* Below Instagram header */
+  right: 20px !important;
+  background: transparent !important;
+  padding: 0 !important;
+  z-index: 9999 !important; /* High but not blocking */
+  width: auto !important;
+  height: auto !important;
   font-family: "Inter", -apple-system, sans-serif !important;
   box-sizing: border-box !important;
+  pointer-events: none !important; /* Allow clicking through empty areas */
 }
 
 .focus-reminder * {
@@ -25,67 +26,103 @@
 }
 
 .focus-reminder-content {
-  max-width: 400px !important;
+  max-width: 320px !important;
   text-align: center !important;
-  background: rgba(44, 44, 46, 0.5) !important;
-  padding: 32px !important;
+  background: rgba(28, 28, 30, 0.95) !important;
+  padding: 24px !important;
   border-radius: 16px !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(20px) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  pointer-events: auto !important; /* Make the content clickable */
+  transform: translateX(0) !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* Add a minimize button */
+.focus-reminder-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+}
+
+.minimize-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #999 !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  margin: -4px -4px 0 0 !important;
+  transition: color 0.2s !important;
+}
+
+.minimize-btn:hover {
+  color: #fff !important;
+}
+
+/* Minimized state */
+.focus-reminder.minimized .focus-reminder-content {
+  transform: translateX(calc(100% - 60px)) !important;
+}
+
+.focus-reminder.minimized .minimize-btn {
+  transform: rotate(180deg) !important;
 }
 
 .focus-reminder h2 {
-  margin: 0 0 16px 0 !important;
+  margin: 0 0 12px 0 !important;
   color: #ffffff !important;
-  font-size: 24px !important;
+  font-size: 20px !important;
   font-weight: 500 !important;
   letter-spacing: -0.01em !important;
 }
 
 .focus-reminder p {
-  color: #999 !important;
-  font-size: 14px !important;
+  color: #ccc !important;
+  font-size: 13px !important;
   line-height: 1.5 !important;
-  margin: 0 0 8px 0 !important;
+  margin: 0 0 6px 0 !important;
   font-weight: 300 !important;
 }
 
 .focus-reminder .section {
-  margin: 24px 0 !important;
-  padding: 16px !important;
-  border-radius: 12px !important;
+  margin: 16px 0 !important;
+  padding: 12px !important;
+  border-radius: 10px !important;
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .focus-reminder .section-title {
   color: #fff !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 500 !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
   letter-spacing: -0.01em !important;
 }
 
 .focus-reminder .section-subtitle {
   color: #999 !important;
-  font-size: 14px !important;
+  font-size: 12px !important;
   font-weight: 300 !important;
-  margin-bottom: 16px !important;
-  line-height: 1.6 !important;
+  margin-bottom: 12px !important;
+  line-height: 1.5 !important;
 }
 
 .focus-reminder .timer-options {
   margin: 0 auto !important;
-  max-width: 280px !important;
+  max-width: 240px !important;
 }
 
 .focus-reminder .schedule {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  padding: 12px 24px !important;
-  font-size: 14px !important;
+  padding: 10px 20px !important;
+  font-size: 13px !important;
   font-weight: 400 !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   width: 100% !important;
@@ -97,14 +134,14 @@
 }
 
 .focus-reminder .countdown {
-  font-size: 32px !important;
+  font-size: 24px !important;
   font-weight: 500 !important;
   color: white !important;
-  margin: 16px 0 !important;
+  margin: 12px 0 !important;
 }
 
 .focus-reminder-buttons {
-  margin-top: 32px !important;
+  margin-top: 20px !important;
   text-align: center !important;
 }
 
@@ -124,13 +161,13 @@
   background-color: #2563eb !important;
   color: white !important;
   border: none !important;
-  padding: 12px 24px !important;
-  font-size: 16px !important;
+  padding: 10px 20px !important;
+  font-size: 14px !important;
   font-weight: 500 !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
   animation: breathing 2s ease-in-out infinite !important;
 }
 
@@ -142,7 +179,7 @@
 }
 
 .focus-reminder .button-hint {
-  font-size: 13px !important;
+  font-size: 11px !important;
   color: #94a3b8 !important;
   margin: 0 !important;
 }
@@ -159,4 +196,42 @@
   line-height: normal !important;
   text-align: center !important;
   width: 100% !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .focus-reminder {
+    top: auto !important;
+    bottom: 80px !important; /* Above mobile navigation */
+    right: 10px !important;
+  }
+  
+  .focus-reminder-content {
+    max-width: 280px !important;
+    padding: 20px !important;
+  }
+  
+  .focus-reminder h2 {
+    font-size: 18px !important;
+  }
+  
+  .focus-reminder p {
+    font-size: 12px !important;
+  }
+}
+
+/* Add subtle entrance animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.focus-reminder-content {
+  animation: slideIn 0.3s ease-out !important;
 }
