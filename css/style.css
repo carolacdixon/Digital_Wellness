@@ -198,6 +198,99 @@
   width: 100% !important;
 }
 
+/* Content breakdown styles */
+.content-breakdown {
+  margin: 16px 0 !important;
+  padding: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.breakdown-title {
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  margin-bottom: 12px !important;
+}
+
+.category-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.category-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 0 !important;
+}
+
+.category-emoji {
+  font-size: 18px !important;
+  width: 24px !important;
+  text-align: center !important;
+}
+
+.category-name {
+  flex: 1 !important;
+  color: #ccc !important;
+  font-size: 12px !important;
+  text-transform: capitalize !important;
+}
+
+.category-count {
+  color: #999 !important;
+  font-size: 11px !important;
+  margin-right: 8px !important;
+}
+
+.category-bar {
+  width: 60px !important;
+  height: 4px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+.category-fill {
+  height: 100% !important;
+  background: #2563eb !important;
+  border-radius: 2px !important;
+  transition: width 0.3s ease !important;
+}
+
+.content-insights {
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.insight-item {
+  color: #ffcc00 !important;
+  font-size: 11px !important;
+  margin-bottom: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.insight-item::before {
+  content: "⚠️" !important;
+  font-size: 12px !important;
+}
+
+.analytics-summary {
+  margin-top: 8px !important;
+  padding: 8px !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+  text-align: center !important;
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .focus-reminder {

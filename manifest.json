@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AI Digital Wellness Companion",
-  "version": "2.0",
-  "description": "AI-powered mindful browsing assistant that helps you navigate social media intentionally",
+  "version": "2.1",
+  "description": "AI-powered mindful browsing assistant with computer vision content analysis",
   "permissions": [
     "activeTab",
     "storage",
@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.instagram.com/*"],
-      "js": ["js/textAnalysis.js", "js/content.js"],
+      "js": ["js/textAnalysis.js", "js/visionAnalysis.js", "js/content.js"],
       "css": ["css/style.css"],
       "run_at": "document_end"
     }

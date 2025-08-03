@@ -31,6 +31,7 @@ let viewedContentIds = new Set();
 let reminderShown = false;
 let contentObserver = null;
 let enhancedTracker = null;
+let visionAnalyzer = null;
 let userSettings = {
     thresholds: DEFAULT_THRESHOLDS,
     features: DEFAULT_FEATURES
@@ -51,6 +52,11 @@ async function loadSettings() {
         if (userSettings.features.textAnalysis && window.EnhancedContentTracker) {
             enhancedTracker = new window.EnhancedContentTracker();
             enhancedTracker.weightedThreshold = userSettings.features.weightedThreshold;
+        }
+        
+        // Initialize vision analyzer
+        if (window.ContentVisionAnalyzer) {
+            visionAnalyzer = new window.ContentVisionAnalyzer();
         }
     } catch (error) {
         console.error('Error loading settings:', error);
@@ -163,6 +169,11 @@ function analyzeVisibleContent() {
                         enhancedTracker.analyzeAndTrackContent(element, contentId, contentType);
                     }
                     
+                    // Analyze visual content with computer vision
+                    if (visionAnalyzer && contentType === 'post') {
+                        visionAnalyzer.analyzeVisualContent(element, contentId);
+                    }
+                    
                     switch(contentType) {
                         case 'post':
                             contentMetrics.postsViewed.add(contentId);
@@ -271,6 +282,53 @@ async function createReminderDialog() {
         summaryHtml = `<p>You've viewed ${postsCount} posts and spent ${timeSpent} minutes here.</p>`;
     }
     
+    // Get visual content breakdown
+    let contentBreakdownHtml = '';
+    if (visionAnalyzer) {
+        const breakdown = visionAnalyzer.getContentBreakdown();
+        if (breakdown.total > 0) {
+            contentBreakdownHtml = '<div class="content-breakdown">';
+            contentBreakdownHtml += '<p class="breakdown-title">Content you\'ve been viewing:</p>';
+            contentBreakdownHtml += '<div class="category-list">';
+            
+            breakdown.breakdown.forEach(item => {
+                const percentage = Math.round((item.count / breakdown.total) * 100);
+                contentBreakdownHtml += `
+                    <div class="category-item">
+                        <span class="category-emoji">${item.emoji}</span>
+                        <span class="category-name">${item.category}</span>
+                        <span class="category-count">${item.count} posts</span>
+                        <div class="category-bar">
+                            <div class="category-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            contentBreakdownHtml += '</div>';
+            
+            // Add insights if any
+            if (breakdown.insights && breakdown.insights.length > 0) {
+                contentBreakdownHtml += '<div class="content-insights">';
+                breakdown.insights.forEach(insight => {
+                    contentBreakdownHtml += `<div class="insight-item">${insight}</div>`;
+                });
+                contentBreakdownHtml += '</div>';
+            }
+            
+            // Add analytics summary
+            if (breakdown.analytics.facesDetected > 0 || breakdown.analytics.objectsDetected > 0) {
+                contentBreakdownHtml += `
+                    <div class="analytics-summary">
+                        AI detected ${breakdown.analytics.facesDetected} faces and ${breakdown.analytics.objectsDetected} objects
+                    </div>
+                `;
+            }
+            
+            contentBreakdownHtml += '</div>';
+        }
+    }
+    
     dialog.innerHTML = `
         <div class="focus-reminder-content">
             <div class="focus-reminder-header">
@@ -278,6 +336,7 @@ async function createReminderDialog() {
                 <button class="minimize-btn" title="Minimize">›</button>
             </div>
             ${summaryHtml}
+            ${contentBreakdownHtml}
             <p>Are you spending your time intentionally?</p>
             
             <div id="timer-selection" class="section">
@@ -364,6 +423,10 @@ function resetMetrics() {
     
     if (enhancedTracker) {
         enhancedTracker.textAnalysisResults.clear();
+    }
+    
+    if (visionAnalyzer) {
+        visionAnalyzer.reset();
     }
 }
 
