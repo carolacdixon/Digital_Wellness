@@ -1,8 +1,10 @@
-// js/content-combined.js - Combined content script with integrated vision analysis
-console.log('🚀 Instagram Content Tracker Starting...');
+// js/content-combined.js - Enhanced with CLIP image+text analysis
+console.log('🚀 Instagram Content Tracker with CLIP Starting...');
 
 // Configuration
-const DEBUG = true; // Set to true to see detailed logs
+const DEBUG = true;
+const CLIP_MODEL = 'Salesforce/blip-image-captioning-base'; // Using BLIP for image understanding
+const CLASSIFICATION_MODEL = 'facebook/bart-large-mnli'; // For zero-shot classification
 
 // State management
 let processedContent = new Set();
@@ -10,16 +12,48 @@ let viewedContentIds = new Set();
 let floatingDisplay = null;
 let apiToken = null;
 
-// Content categories
+// Enhanced content categories with descriptions for CLIP
 let contentCategories = {
-    'beauty': { count: 0, emoji: '💄' },
-    'fashion': { count: 0, emoji: '👗' },
-    'food': { count: 0, emoji: '🍔' },
-    'fitness': { count: 0, emoji: '💪' },
-    'travel': { count: 0, emoji: '✈️' },
-    'pets': { count: 0, emoji: '🐾' },
-    'lifestyle': { count: 0, emoji: '🏠' },
-    'other': { count: 0, emoji: '📷' }
+    'beauty': { 
+        count: 0, 
+        emoji: '💄',
+        prompts: ['beauty products', 'makeup', 'skincare', 'cosmetics', 'facial beauty']
+    },
+    'fashion': { 
+        count: 0, 
+        emoji: '👗',
+        prompts: ['fashion outfit', 'clothing', 'style', 'wearing clothes', 'fashion model']
+    },
+    'food': { 
+        count: 0, 
+        emoji: '🍔',
+        prompts: ['food', 'meal', 'eating', 'restaurant dish', 'cooking']
+    },
+    'fitness': { 
+        count: 0, 
+        emoji: '💪',
+        prompts: ['fitness workout', 'gym exercise', 'sports', 'athletic activity', 'yoga pose']
+    },
+    'travel': { 
+        count: 0, 
+        emoji: '✈️',
+        prompts: ['travel destination', 'vacation', 'tourist location', 'landscape scenery', 'adventure']
+    },
+    'pets': { 
+        count: 0, 
+        emoji: '🐾',
+        prompts: ['pet animal', 'dog', 'cat', 'cute animal', 'pet companion']
+    },
+    'lifestyle': { 
+        count: 0, 
+        emoji: '🏠',
+        prompts: ['home interior', 'lifestyle', 'daily life', 'home decor', 'living space']
+    },
+    'other': { 
+        count: 0, 
+        emoji: '📷',
+        prompts: ['general photo', 'other content', 'miscellaneous']
+    }
 };
 
 // Check for API token
@@ -28,16 +62,255 @@ async function checkApiToken() {
         const settings = await chrome.storage.sync.get(['huggingFaceToken']);
         if (settings.huggingFaceToken) {
             apiToken = settings.huggingFaceToken;
-            if (DEBUG) console.log('✅ API token found');
+            if (DEBUG) console.log('✅ API token found - CLIP analysis enabled');
         } else {
-            if (DEBUG) console.log('⚠️ No API token - using caption-based categorization');
+            if (DEBUG) console.log('⚠️ No API token - using caption-based categorization only');
         }
     } catch (error) {
         console.error('Error checking API token:', error);
     }
 }
 
-// Create floating display immediately
+// Convert image URL to base64
+async function imageUrlToBase64(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                // Remove the data:image/jpeg;base64, prefix
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error('Error converting image to base64:', error);
+        return null;
+    }
+}
+
+// Analyze image with vision model and classify the description
+async function analyzeImageWithCLIP(imageUrl, caption = '') {
+    if (!apiToken) {
+        return null;
+    }
+
+    try {
+        // Get base64 image
+        const base64Image = await imageUrlToBase64(imageUrl);
+        if (!base64Image) {
+            console.error('Failed to convert image to base64');
+            return null;
+        }
+
+        if (DEBUG) console.log('🔍 Analyzing image with vision model...');
+
+        // Step 1: Generate image description using BLIP
+        const captionResponse = await fetch(
+            `https://api-inference.huggingface.co/models/${CLIP_MODEL}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: base64Image,
+                    options: {
+                        wait_for_model: true
+                    }
+                })
+            }
+        );
+
+        if (!captionResponse.ok) {
+            const errorText = await captionResponse.text();
+            console.error('Vision API error:', captionResponse.status, errorText);
+            return null;
+        }
+
+        const captionResults = await captionResponse.json();
+        
+        if (!captionResults || captionResults.length === 0) {
+            console.error('No caption generated');
+            return null;
+        }
+
+        const generatedCaption = captionResults[0]?.generated_text || '';
+        if (DEBUG) console.log('Generated caption:', generatedCaption);
+
+        // Combine generated caption with original caption
+        const fullText = `${generatedCaption} ${caption}`.trim();
+
+        // Step 2: Classify the combined text
+        const categories = Object.keys(contentCategories).filter(c => c !== 'other');
+        
+        const classificationResponse = await fetch(
+            `https://api-inference.huggingface.co/models/${CLASSIFICATION_MODEL}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: fullText,
+                    parameters: {
+                        candidate_labels: categories,
+                        multi_label: false
+                    },
+                    options: {
+                        wait_for_model: true
+                    }
+                })
+            }
+        );
+
+        if (!classificationResponse.ok) {
+            const errorText = await classificationResponse.text();
+            console.error('Classification API error:', classificationResponse.status, errorText);
+            return null;
+        }
+
+        const classificationResults = await classificationResponse.json();
+        
+        if (DEBUG) console.log('Classification results:', classificationResults);
+
+        // Get the top category
+        if (classificationResults && classificationResults.labels && classificationResults.labels.length > 0) {
+            const topCategory = classificationResults.labels[0];
+            const topScore = classificationResults.scores[0];
+            
+            // Only use if confidence is above threshold
+            if (topScore > 0.3) {
+                if (DEBUG) console.log(`✅ AI classified as: ${topCategory} (confidence: ${(topScore * 100).toFixed(1)}%)`);
+                return topCategory;
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error in vision analysis:', error);
+        return null;
+    }
+}
+
+// Fallback: Categorize content based on caption only
+function categorizeByCaption(caption) {
+    const text = (caption || '').toLowerCase();
+    
+    const categoryKeywords = {
+        'beauty': ['makeup', 'beauty', 'skincare', 'glow', 'skin', 'cosmetic', 'lipstick', 'mascara'],
+        'fashion': ['outfit', 'ootd', 'fashion', 'style', 'dress', 'wear', 'clothing', 'clothes'],
+        'food': ['food', 'eat', 'meal', 'recipe', 'delicious', 'yummy', 'cook', 'restaurant', 'dinner', 'lunch'],
+        'fitness': ['workout', 'gym', 'fitness', 'exercise', 'training', 'muscle', 'yoga', 'run'],
+        'travel': ['travel', 'trip', 'vacation', 'explore', 'adventure', 'journey', 'visit', 'tourist'],
+        'pets': ['dog', 'cat', 'pet', 'puppy', 'kitten', 'animal', 'fur baby', 'paw'],
+        'lifestyle': ['home', 'decor', 'life', 'daily', 'morning', 'routine', 'cozy', 'living']
+    };
+    
+    for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        if (keywords.some(keyword => text.includes(keyword))) {
+            return category;
+        }
+    }
+    
+    return 'other';
+}
+
+// Enhanced content analysis with CLIP
+async function analyzeContent(element, contentId) {
+    if (processedContent.has(contentId)) {
+        return;
+    }
+    
+    processedContent.add(contentId);
+    
+    // Extract image URL
+    let imageUrl = null;
+    const imageSelectors = [
+        'img[srcset]',
+        'img[src]',
+        'video[poster]'
+    ];
+    
+    for (const selector of imageSelectors) {
+        const img = element.querySelector(selector);
+        if (img) {
+            if (img.srcset) {
+                // Get the highest quality image from srcset
+                const srcsetParts = img.srcset.split(',');
+                const lastPart = srcsetParts[srcsetParts.length - 1].trim();
+                imageUrl = lastPart.split(' ')[0];
+            } else if (img.src) {
+                imageUrl = img.src;
+            } else if (img.poster) {
+                imageUrl = img.poster;
+            }
+            
+            if (imageUrl && !imageUrl.includes('data:')) {
+                break;
+            }
+        }
+    }
+    
+    // Extract caption
+    let caption = '';
+    const captionSelectors = [
+        'h1',
+        'span[dir="auto"]',
+        '[data-testid="post-caption"]',
+        'div[style*="line-height"] span'
+    ];
+    
+    for (const selector of captionSelectors) {
+        try {
+            const elements = element.querySelectorAll(selector);
+            for (const el of elements) {
+                const text = el.textContent || '';
+                if (text.length > caption.length && text.length > 10) {
+                    caption = text;
+                }
+            }
+        } catch (error) {
+            // Continue with next selector
+        }
+    }
+    
+    if (DEBUG) console.log(`📸 Analyzing post: ${contentId}`);
+    if (DEBUG && imageUrl) console.log(`   Image: ${imageUrl.substring(0, 50)}...`);
+    if (DEBUG && caption) console.log(`   Caption: ${caption.substring(0, 50)}...`);
+    
+    let category = 'other';
+    
+    // Try vision analysis first if we have an image and API token
+    if (imageUrl && apiToken) {
+        const visionCategory = await analyzeImageWithCLIP(imageUrl, caption);
+        if (visionCategory) {
+            category = visionCategory;
+            if (DEBUG) console.log(`   ✨ AI vision category: ${category}`);
+        } else {
+            // Fallback to caption-based categorization
+            category = categorizeByCaption(caption);
+            if (DEBUG) console.log(`   📝 Caption-based category: ${category}`);
+        }
+    } else {
+        // No image or API token, use caption-based categorization
+        category = categorizeByCaption(caption);
+        if (DEBUG) console.log(`   📝 Caption-only category: ${category}`);
+    }
+    
+    // Update count
+    contentCategories[category].count++;
+    
+    // Update display
+    updateFloatingDisplay();
+}
+
+// Create floating display
 function createFloatingDisplay() {
     if (floatingDisplay) {
         if (DEBUG) console.log('Display already exists');
@@ -85,7 +358,7 @@ function createFloatingDisplay() {
         fontWeight: '600',
         letterSpacing: '0.3px'
     });
-    title.textContent = 'Content Viewed';
+    title.textContent = apiToken ? '🤖 AI Vision Analysis' : '📝 Text Analysis';
     
     const minimizeBtn = document.createElement('button');
     Object.assign(minimizeBtn.style, {
@@ -221,15 +494,6 @@ function createFloatingDisplay() {
     });
     
     if (DEBUG) console.log('✅ Floating display created and added to page');
-    
-    // Add some test data to make sure it's working
-    if (DEBUG) {
-        setTimeout(() => {
-            console.log('Adding test data to display...');
-            contentCategories['other'].count = 1;
-            updateFloatingDisplay();
-        }, 1000);
-    }
 }
 
 // Update the floating display
@@ -244,6 +508,12 @@ function updateFloatingDisplay() {
     
     const grid = floatingDisplay.querySelector('.category-grid');
     const totalCountEl = floatingDisplay.querySelector('.total-count');
+    const title = floatingDisplay.querySelector('span');
+    
+    // Update title based on API status
+    if (title) {
+        title.textContent = apiToken ? '🤖 AI Vision Analysis' : '📝 Text Analysis';
+    }
     
     if (!grid || !totalCountEl) {
         console.error('Display elements not found');
@@ -364,74 +634,6 @@ function extractContentId(element) {
     }
 }
 
-// Categorize content based on caption
-function categorizeByCaption(caption) {
-    const text = (caption || '').toLowerCase();
-    
-    const categoryKeywords = {
-        'beauty': ['makeup', 'beauty', 'skincare', 'glow', 'skin', 'cosmetic', 'lipstick', 'mascara'],
-        'fashion': ['outfit', 'ootd', 'fashion', 'style', 'dress', 'wear', 'clothing', 'clothes'],
-        'food': ['food', 'eat', 'meal', 'recipe', 'delicious', 'yummy', 'cook', 'restaurant', 'dinner', 'lunch'],
-        'fitness': ['workout', 'gym', 'fitness', 'exercise', 'training', 'muscle', 'yoga', 'run'],
-        'travel': ['travel', 'trip', 'vacation', 'explore', 'adventure', 'journey', 'visit', 'tourist'],
-        'pets': ['dog', 'cat', 'pet', 'puppy', 'kitten', 'animal', 'fur baby', 'paw'],
-        'lifestyle': ['home', 'decor', 'life', 'daily', 'morning', 'routine', 'cozy', 'living']
-    };
-    
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-        if (keywords.some(keyword => text.includes(keyword))) {
-            return category;
-        }
-    }
-    
-    return 'other';
-}
-
-// Analyze content
-async function analyzeContent(element, contentId) {
-    if (processedContent.has(contentId)) {
-        return;
-    }
-    
-    processedContent.add(contentId);
-    
-    // Extract caption
-    let caption = '';
-    const captionSelectors = [
-        'h1',
-        'span[dir="auto"]',
-        '[data-testid="post-caption"]',
-        'div[style*="line-height"] span'
-    ];
-    
-    for (const selector of captionSelectors) {
-        try {
-            const elements = element.querySelectorAll(selector);
-            for (const el of elements) {
-                const text = el.textContent || '';
-                if (text.length > caption.length && text.length > 10) {
-                    caption = text;
-                }
-            }
-        } catch (error) {
-            // Continue with next selector
-        }
-    }
-    
-    if (DEBUG) console.log(`Analyzing post: ${contentId}, caption: ${caption.substring(0, 50)}...`);
-    
-    // Categorize based on caption
-    const category = categorizeByCaption(caption);
-    
-    // Update count
-    contentCategories[category].count++;
-    
-    if (DEBUG) console.log(`Post categorized as: ${category}`);
-    
-    // Update display
-    updateFloatingDisplay();
-}
-
 // Analyze visible content on the page
 async function analyzeVisibleContent() {
     if (DEBUG) console.log('Scanning for visible content...');
@@ -478,6 +680,11 @@ async function analyzeVisibleContent() {
                     viewedContentIds.add(contentId);
                     newPosts++;
                     await analyzeContent(post, contentId);
+                    
+                    // Add a small delay between API calls to avoid rate limiting
+                    if (apiToken && newPosts % 3 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
                 }
             }
         } catch (error) {
@@ -540,7 +747,7 @@ function setupContentObserver() {
 
 // Initialize everything
 async function initialize() {
-    console.log('🚀 Initializing Instagram Content Tracker...');
+    console.log('🚀 Initializing Instagram Content Tracker with CLIP...');
     
     try {
         // Check API token
@@ -563,7 +770,7 @@ async function initialize() {
             analyzeVisibleContent();
         }, 5000);
         
-        console.log('✅ Instagram Content Tracker initialized successfully!');
+        console.log('✅ Instagram Content Tracker with CLIP initialized successfully!');
     } catch (error) {
         console.error('Error during initialization:', error);
     }
