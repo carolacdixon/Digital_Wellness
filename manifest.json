@@ -1,29 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "AI Digital Wellness Companion",
-  "version": "2.1",
-  "description": "AI-powered mindful browsing assistant with computer vision content analysis",
+  "name": "Instagram Content Tracker",
+  "version": "1.0",
+  "description": "Track what type of content you view on Instagram",
   "permissions": [
-    "activeTab",
     "storage",
-    "tabs",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "*://*.instagram.com/*",
+    "https://api-inference.huggingface.co/*"
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
   "background": {
     "service_worker": "js/background.js"
   },
   "content_scripts": [
     {
       "matches": ["*://*.instagram.com/*"],
-      "js": ["js/textAnalysis.js", "js/visionAnalysis.js", "js/content.js"],
-      "css": ["css/style.css"],
-      "run_at": "document_end"
+      "js": ["js/visionAnalysis.js", "js/content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "options_page": "options.html",

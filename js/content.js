@@ -1,108 +1,25 @@
-// js/content.js - Updated with overlay functionality
-const DELAY_TIME = 30;
+// js/content.js - Simplified content tracker with floating display
+console.log('🔄 content.js loading...');
 
-// Default configuration
-const DEFAULT_THRESHOLDS = {
-    postsViewed: 10,
-    storiesViewed: 5,
-    reelsViewed: 5,
-    timeSpent: 300,
-    scrollDepth: 3000
-};
-
-const DEFAULT_FEATURES = {
-    textAnalysis: true,
-    weightedScoring: true,
-    weightedThreshold: 25
-};
-
-// Content tracking state
-let contentMetrics = {
-    postsViewed: new Set(),
-    storiesViewed: new Set(),
-    reelsViewed: new Set(),
-    timeSpent: 0,
-    scrollDepth: 0,
-    sessionStart: Date.now(),
-    lastInteraction: Date.now()
-};
-
-let viewedContentIds = new Set();
-let reminderShown = false;
-let contentObserver = null;
-let enhancedTracker = null;
 let visionAnalyzer = null;
-let userSettings = {
-    thresholds: DEFAULT_THRESHOLDS,
-    features: DEFAULT_FEATURES
-};
+let viewedContentIds = new Set();
+let floatingDisplay = null;
 
-// Load user settings
-async function loadSettings() {
-    try {
-        const result = await chrome.storage.sync.get(['contentThresholds', 'advancedFeatures']);
-        if (result.contentThresholds) {
-            userSettings.thresholds = { ...DEFAULT_THRESHOLDS, ...result.contentThresholds };
-        }
-        if (result.advancedFeatures) {
-            userSettings.features = { ...DEFAULT_FEATURES, ...result.advancedFeatures };
-        }
-        
-        // Initialize enhanced tracker if text analysis is enabled
-        if (userSettings.features.textAnalysis && window.EnhancedContentTracker) {
-            enhancedTracker = new window.EnhancedContentTracker();
-            enhancedTracker.weightedThreshold = userSettings.features.weightedThreshold;
-        }
-        
-        // Initialize vision analyzer
-        if (window.ContentVisionAnalyzer) {
-            visionAnalyzer = new window.ContentVisionAnalyzer();
-        }
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-async function shouldShowReminder() {
-    try {
-        const domain = window.location.hostname.replace('www.', '');
-        const result = await chrome.storage.sync.get('sites');
-        
-        if (!result.sites || result.sites.length === 0) {
-            return true;
-        }
-
-        const sites = result.sites;
-        const matchingSite = sites.find(site => 
-            domain.includes(site.domain) || site.domain.includes(domain)
-        );
-        
-        return matchingSite ? matchingSite.enabled : false;
-    } catch (error) {
-        return false;
-    }
-}
-
-// Check if content threshold has been reached
-function hasReachedThreshold() {
-    const timeSpent = (Date.now() - contentMetrics.sessionStart) / 1000;
-    
-    // Check weighted threshold if enabled
-    if (userSettings.features.weightedScoring && enhancedTracker) {
-        return enhancedTracker.hasReachedWeightedThreshold(contentMetrics);
+// Initialize vision analyzer
+async function initializeAnalyzer() {
+    console.log('Initializing analyzer...');
+    if (window.ContentVisionAnalyzer) {
+        visionAnalyzer = new window.ContentVisionAnalyzer();
+        console.log('✅ Vision Analyzer initialized');
+    } else {
+        console.log('❌ ContentVisionAnalyzer not found on window');
     }
     
-    // Otherwise use simple thresholds
-    return (
-        contentMetrics.postsViewed.size >= userSettings.thresholds.postsViewed ||
-        contentMetrics.storiesViewed.size >= userSettings.thresholds.storiesViewed ||
-        contentMetrics.reelsViewed.size >= userSettings.thresholds.reelsViewed ||
-        timeSpent >= userSettings.thresholds.timeSpent ||
-        contentMetrics.scrollDepth >= userSettings.thresholds.scrollDepth
-    );
+    // Create floating display
+    createFloatingDisplay();
 }
 
-// Extract unique ID from Instagram post/story/reel
+// Extract unique ID from Instagram post
 function extractContentId(element) {
     const article = element.closest('article');
     if (article) {
@@ -113,376 +30,257 @@ function extractContentId(element) {
         }
     }
     
-    const storyContainer = element.closest('[role="button"][aria-label*="story"]');
-    if (storyContainer) {
-        return `story-${storyContainer.getAttribute('aria-label')}`;
-    }
-    
     const rect = element.getBoundingClientRect();
     return `${rect.top}-${rect.left}-${element.innerHTML.substring(0, 50)}`;
 }
 
-// Determine content type
-function getContentType(element) {
-    if (element.querySelector('video') && window.location.pathname.includes('/reels')) {
-        return 'reel';
-    }
-    
-    if (element.closest('[aria-label*="story"]') || window.location.pathname.includes('/stories')) {
-        return 'story';
-    }
-    
-    return 'post';
-}
-
 // Analyze visible content on the page
-function analyzeVisibleContent() {
-    if (reminderShown) return;
+async function analyzeVisibleContent() {
+    console.log('Checking for visible content...');
+    const articles = document.querySelectorAll('article');
+    console.log(`Found ${articles.length} articles on page`);
     
-    const contentSelectors = [
-        'article',
-        '[role="button"][aria-label*="story"]',
-        'video',
-        '[aria-label="Timeline: "]'
-    ];
-    
-    contentSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
+    for (const article of articles) {
+        const rect = article.getBoundingClientRect();
+        const isVisible = (
+            rect.top >= -100 &&
+            rect.bottom <= window.innerHeight + 100 &&
+            rect.height > 100
+        );
         
-        elements.forEach(element => {
-            const rect = element.getBoundingClientRect();
-            const isVisible = (
-                rect.top >= 0 &&
-                rect.bottom <= window.innerHeight &&
-                rect.height > 100
-            );
+        if (isVisible) {
+            const contentId = extractContentId(article);
             
-            if (isVisible) {
-                const contentId = extractContentId(element);
+            if (!viewedContentIds.has(contentId)) {
+                viewedContentIds.add(contentId);
+                console.log(`New content detected: ${contentId}`);
                 
-                if (!viewedContentIds.has(contentId)) {
-                    viewedContentIds.add(contentId);
-                    const contentType = getContentType(element);
-                    
-                    // Track content with enhanced analysis if enabled
-                    if (enhancedTracker && userSettings.features.textAnalysis) {
-                        enhancedTracker.analyzeAndTrackContent(element, contentId, contentType);
-                    }
-                    
-                    // Analyze visual content with computer vision
-                    if (visionAnalyzer && contentType === 'post') {
-                        visionAnalyzer.analyzeVisualContent(element, contentId);
-                    }
-                    
-                    switch(contentType) {
-                        case 'post':
-                            contentMetrics.postsViewed.add(contentId);
-                            console.log(`Post viewed: ${contentMetrics.postsViewed.size}/${userSettings.thresholds.postsViewed}`);
-                            break;
-                        case 'story':
-                            contentMetrics.storiesViewed.add(contentId);
-                            console.log(`Story viewed: ${contentMetrics.storiesViewed.size}/${userSettings.thresholds.storiesViewed}`);
-                            break;
-                        case 'reel':
-                            contentMetrics.reelsViewed.add(contentId);
-                            console.log(`Reel viewed: ${contentMetrics.reelsViewed.size}/${userSettings.thresholds.reelsViewed}`);
-                            break;
-                    }
-                    
-                    if (hasReachedThreshold()) {
-                        showMindfulReminder();
-                    }
+                // Analyze with vision analyzer
+                if (visionAnalyzer) {
+                    await visionAnalyzer.analyzeContent(article, contentId);
+                } else {
+                    console.log('Vision analyzer not initialized');
                 }
             }
-        });
-    });
+        }
+    }
 }
 
-// Track scroll depth
-function trackScrolling() {
-    let lastScrollY = window.scrollY;
+// Create floating display for category counts
+function createFloatingDisplay() {
+    if (floatingDisplay) return;
     
-    window.addEventListener('scroll', () => {
-        const currentScrollY = window.scrollY;
-        if (currentScrollY > lastScrollY) {
-            contentMetrics.scrollDepth += (currentScrollY - lastScrollY);
+    floatingDisplay = document.createElement('div');
+    floatingDisplay.id = 'content-tracker-display';
+    floatingDisplay.innerHTML = `
+        <div class="tracker-header">
+            <span class="tracker-title">Content Viewed</span>
+            <button class="tracker-minimize">−</button>
+        </div>
+        <div class="tracker-content">
+            <div class="category-grid"></div>
+            <button class="tracker-reset">Reset</button>
+        </div>
+    `;
+    
+    document.body.appendChild(floatingDisplay);
+    
+    // Add minimize functionality
+    const minimizeBtn = floatingDisplay.querySelector('.tracker-minimize');
+    minimizeBtn.addEventListener('click', () => {
+        floatingDisplay.classList.toggle('minimized');
+        minimizeBtn.textContent = floatingDisplay.classList.contains('minimized') ? '+' : '−';
+    });
+    
+    // Add reset functionality
+    const resetBtn = floatingDisplay.querySelector('.tracker-reset');
+    resetBtn.addEventListener('click', () => {
+        if (visionAnalyzer) {
+            visionAnalyzer.reset();
+            viewedContentIds.clear();
         }
-        lastScrollY = currentScrollY;
+    });
+    
+    // Add styles
+    addFloatingDisplayStyles();
+}
+
+// Update the floating display with new counts
+function updateFloatingDisplay(categories) {
+    if (!floatingDisplay) return;
+    
+    const grid = floatingDisplay.querySelector('.category-grid');
+    grid.innerHTML = '';
+    
+    for (const [category, data] of Object.entries(categories)) {
+        if (data.count > 0) {
+            const item = document.createElement('div');
+            item.className = 'category-item';
+            item.innerHTML = `
+                <span class="category-emoji">${data.emoji}</span>
+                <span class="category-name">${category}</span>
+                <span class="category-count">${data.count}</span>
+            `;
+            grid.appendChild(item);
+        }
+    }
+}
+
+// Add CSS styles for floating display
+function addFloatingDisplayStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #content-tracker-display {
+            position: fixed !important;
+            top: 70px !important;
+            right: 20px !important;
+            width: 200px !important;
+            background: rgba(28, 28, 30, 0.95) !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(20px) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            z-index: 999999 !important;
+            font-family: -apple-system, sans-serif !important;
+            transition: all 0.3s ease !important;
+        }
         
-        analyzeVisibleContent();
+        #content-tracker-display.minimized {
+            width: 120px !important;
+        }
+        
+        #content-tracker-display.minimized .tracker-content {
+            display: none !important;
+        }
+        
+        .tracker-header {
+            padding: 12px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .tracker-title {
+            color: #fff !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
+        }
+        
+        .tracker-minimize {
+            background: transparent !important;
+            border: none !important;
+            color: #999 !important;
+            font-size: 18px !important;
+            cursor: pointer !important;
+            padding: 0 !important;
+            width: 20px !important;
+            height: 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .tracker-minimize:hover {
+            color: #fff !important;
+        }
+        
+        .tracker-content {
+            padding: 12px !important;
+        }
+        
+        .category-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+        }
+        
+        .category-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            color: #ccc !important;
+            font-size: 12px !important;
+        }
+        
+        .category-emoji {
+            font-size: 16px !important;
+        }
+        
+        .category-name {
+            flex: 1 !important;
+            text-transform: capitalize !important;
+        }
+        
+        .category-count {
+            background: rgba(255, 255, 255, 0.1) !important;
+            padding: 2px 6px !important;
+            border-radius: 10px !important;
+            font-size: 11px !important;
+        }
+        
+        .tracker-reset {
+            width: 100% !important;
+            padding: 6px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            color: #fff !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+        
+        .tracker-reset:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Set up scroll listener
+function setupScrollListener() {
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            analyzeVisibleContent();
+        }, 200);
     });
 }
 
 // Set up mutation observer for dynamic content
 function setupContentObserver() {
-    if (contentObserver) {
-        contentObserver.disconnect();
-    }
-    
-    contentObserver = new MutationObserver((mutations) => {
-        clearTimeout(contentMetrics.analysisTimeout);
-        contentMetrics.analysisTimeout = setTimeout(() => {
-            analyzeVisibleContent();
-        }, 500);
+    const observer = new MutationObserver(() => {
+        setTimeout(analyzeVisibleContent, 500);
     });
     
     const targetNode = document.querySelector('main') || document.body;
-    contentObserver.observe(targetNode, {
+    observer.observe(targetNode, {
         childList: true,
-        subtree: true,
-        attributes: false
+        subtree: true
     });
 }
 
-// Show the mindful reminder when threshold is reached
-async function showMindfulReminder() {
-    if (reminderShown || !(await shouldShowReminder())) {
-        return;
-    }
-    
-    reminderShown = true;
-    
-    console.log('Content consumption metrics:', {
-        posts: contentMetrics.postsViewed.size,
-        stories: contentMetrics.storiesViewed.size,
-        reels: contentMetrics.reelsViewed.size,
-        timeSpent: (Date.now() - contentMetrics.sessionStart) / 1000,
-        scrollDepth: contentMetrics.scrollDepth
-    });
-    
-    createReminderDialog();
-}
-
-async function createReminderDialog() {
-    if (!document.body || document.documentElement.tagName.toLowerCase() === 'svg') {
-        return;
-    }
-
-    if (document.querySelector('.focus-reminder')) {
-        return;
-    }
-
-    const dialog = document.createElement('div');
-    dialog.className = 'focus-reminder';
-    
-    // Get consumption summary
-    let summaryHtml = '';
-    if (enhancedTracker && userSettings.features.textAnalysis) {
-        const summary = enhancedTracker.getConsumptionSummary(contentMetrics);
-        summaryHtml = `
-            <p>You've viewed ${summary.postsViewed} posts and spent ${summary.timeSpent} minutes here.</p>
-            ${summary.dominantContent !== 'general' ? 
-                `<p>You've been looking at a lot of ${summary.dominantContent} content.</p>` : ''}
-            ${summary.negativeContent > 2 ? 
-                `<p>Some of the content you've viewed contained negative themes.</p>` : ''}
-        `;
-    } else {
-        const postsCount = contentMetrics.postsViewed.size;
-        const timeSpent = Math.floor((Date.now() - contentMetrics.sessionStart) / 60000);
-        summaryHtml = `<p>You've viewed ${postsCount} posts and spent ${timeSpent} minutes here.</p>`;
-    }
-    
-    // Get visual content breakdown
-    let contentBreakdownHtml = '';
-    if (visionAnalyzer) {
-        const breakdown = visionAnalyzer.getContentBreakdown();
-        if (breakdown.total > 0) {
-            contentBreakdownHtml = '<div class="content-breakdown">';
-            contentBreakdownHtml += '<p class="breakdown-title">Content you\'ve been viewing:</p>';
-            contentBreakdownHtml += '<div class="category-list">';
-            
-            breakdown.breakdown.forEach(item => {
-                const percentage = Math.round((item.count / breakdown.total) * 100);
-                contentBreakdownHtml += `
-                    <div class="category-item">
-                        <span class="category-emoji">${item.emoji}</span>
-                        <span class="category-name">${item.category}</span>
-                        <span class="category-count">${item.count} posts</span>
-                        <div class="category-bar">
-                            <div class="category-fill" style="width: ${percentage}%"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            contentBreakdownHtml += '</div>';
-            
-            // Add insights if any
-            if (breakdown.insights && breakdown.insights.length > 0) {
-                contentBreakdownHtml += '<div class="content-insights">';
-                breakdown.insights.forEach(insight => {
-                    contentBreakdownHtml += `<div class="insight-item">${insight}</div>`;
-                });
-                contentBreakdownHtml += '</div>';
-            }
-            
-            // Add analytics summary
-            if (breakdown.analytics.facesDetected > 0 || breakdown.analytics.objectsDetected > 0) {
-                contentBreakdownHtml += `
-                    <div class="analytics-summary">
-                        AI detected ${breakdown.analytics.facesDetected} faces and ${breakdown.analytics.objectsDetected} objects
-                    </div>
-                `;
-            }
-            
-            contentBreakdownHtml += '</div>';
-        }
-    }
-    
-    dialog.innerHTML = `
-        <div class="focus-reminder-content">
-            <div class="focus-reminder-header">
-                <h2>Mindful Moment</h2>
-                <button class="minimize-btn" title="Minimize">›</button>
-            </div>
-            ${summaryHtml}
-            ${contentBreakdownHtml}
-            <p>Are you spending your time intentionally?</p>
-            
-            <div id="timer-selection" class="section">
-                <p class="section-title">If necessary...</p>
-                <p class="section-subtitle">Look outside the window<br>and come back in a minute</p>
-                <div class="timer-options">
-                    <button class="schedule" data-minutes="1">Take a Break</button>
-                </div>
-            </div>
-
-            <div id="timer-display" class="section" style="display: none;">
-                <p class="timer">Time remaining until you can continue</p>
-                <p class="countdown"><span id="countdown">00:${DELAY_TIME}</span></p>
-            </div>
-
-            <div class="focus-reminder-buttons">
-                <button class="leave">Leave Now</button>
-                <p class="button-hint">and focus on what matters</p>
-            </div>
-        </div>
-    `;
-
-    // Add minimize functionality
-    const minimizeBtn = dialog.querySelector('.minimize-btn');
-    minimizeBtn.addEventListener('click', () => {
-        dialog.classList.toggle('minimized');
-    });
-
-    let countdownInterval;
-    const timerDisplay = dialog.querySelector('#timer-display');
-    const countdownElement = dialog.querySelector('#countdown');
-    const timerSelection = dialog.querySelector('#timer-selection');
-
-    dialog.querySelector('.schedule').addEventListener('click', () => {
-        if (countdownInterval) clearInterval(countdownInterval);
-
-        let timeLeft = DELAY_TIME;
-        timerSelection.style.display = 'none';
-        timerDisplay.style.display = 'block';
-        
-        countdownInterval = setInterval(() => {
-            timeLeft--;
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            countdownElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-            
-            if (timeLeft <= 0) {
-                clearInterval(countdownInterval);
-                dialog.style.opacity = '0';
-                setTimeout(() => {
-                    dialog.remove();
-                    resetMetrics();
-                }, 200);
-            }
-        }, 1000);
-    });
-
-    dialog.querySelector('.leave').addEventListener('click', () => {
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-        }
-        dialog.style.opacity = '0';
-        setTimeout(() => {
-            chrome.runtime.sendMessage({ action: 'closeTab' });
-        }, 200);
-    });
-
-    document.body.appendChild(dialog);
-}
-
-// Reset metrics for a new session
-function resetMetrics() {
-    contentMetrics = {
-        postsViewed: new Set(),
-        storiesViewed: new Set(),
-        reelsViewed: new Set(),
-        timeSpent: 0,
-        scrollDepth: 0,
-        sessionStart: Date.now(),
-        lastInteraction: Date.now()
-    };
-    viewedContentIds.clear();
-    reminderShown = false;
-    
-    if (enhancedTracker) {
-        enhancedTracker.textAnalysisResults.clear();
-    }
-    
-    if (visionAnalyzer) {
-        visionAnalyzer.reset();
-    }
-}
-
-// Initialize content tracking
-async function initializeContentTracking() {
-    if (!document.body || document.documentElement.tagName.toLowerCase() === 'svg') {
-        return;
-    }
-    
-    // Load settings first
-    await loadSettings();
-    
-    // Set up observers and listeners
-    setupContentObserver();
-    trackScrolling();
-    
-    // Initial content analysis
-    setTimeout(() => {
-        analyzeVisibleContent();
-    }, 2000);
-    
-    // Periodic analysis for time-based threshold
-    setInterval(() => {
-        if (hasReachedThreshold() && !reminderShown) {
-            showMindfulReminder();
-        }
-    }, 30000);
-}
-
-// Handle messages from extension
+// Listen for updates from vision analyzer
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'checkReminder') {
-        if (hasReachedThreshold()) {
-            showMindfulReminder();
-        }
-    } else if (message.action === 'getMetrics') {
-        sendResponse({
-            ...contentMetrics,
-            postsViewed: contentMetrics.postsViewed.size,
-            storiesViewed: contentMetrics.storiesViewed.size,
-            reelsViewed: contentMetrics.reelsViewed.size,
-            timeSpent: (Date.now() - contentMetrics.sessionStart) / 1000
-        });
-    }
-});
-
-// Listen for settings changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && (changes.contentThresholds || changes.advancedFeatures)) {
-        loadSettings();
+    if (message.action === 'updateCounts') {
+        updateFloatingDisplay(message.categories);
     }
 });
 
 // Initialize when page is ready
 if (document.readyState === 'complete') {
-    initializeContentTracking();
+    initializeAnalyzer();
+    setupScrollListener();
+    setupContentObserver();
+    setTimeout(analyzeVisibleContent, 1000);
 } else {
-    window.addEventListener('load', initializeContentTracking);
+    window.addEventListener('load', () => {
+        initializeAnalyzer();
+        setupScrollListener();
+        setupContentObserver();
+        setTimeout(analyzeVisibleContent, 1000);
+    });
 }

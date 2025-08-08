@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mindful Browsing Options</title>
+    <title>Content Tracker Settings</title>
     <style>
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            max-width: 600px;
+            font-family: -apple-system, sans-serif;
+            max-width: 500px;
             margin: 40px auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: #f5f5f5;
         }
         
         .container {
@@ -21,133 +21,99 @@
         h1 {
             color: #1C1C1E;
             margin-bottom: 10px;
+            font-size: 24px;
         }
         
         .subtitle {
             color: #666;
             margin-bottom: 30px;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .section h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        
-        .threshold-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            color: #444;
-        }
-        
-        .label-text {
-            flex-grow: 1;
-        }
-        
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        input[type="number"] {
-            width: 80px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
             font-size: 14px;
         }
         
-        input[type="range"] {
-            width: 150px;
+        .api-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
         
-        .range-value {
-            width: 40px;
-            text-align: center;
+        .api-status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        .api-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .api-status.disconnected {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
             font-weight: 500;
         }
         
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: monospace;
+            box-sizing: border-box;
         }
         
-        .toggle {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
+        .help-text {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
         }
         
-        .toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+        .help-text a {
+            color: #0066cc;
+            text-decoration: none;
         }
         
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .3s;
-            border-radius: 24px;
+        .help-text a:hover {
+            text-decoration: underline;
         }
         
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
+        ol {
+            margin: 10px 0;
+            padding-left: 20px;
         }
         
-        input:checked + .slider {
-            background-color: #2563eb;
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(20px);
+        li {
+            margin: 5px 0;
         }
         
         .save-button {
-            background-color: #2563eb;
+            background: #007AFF;
             color: white;
             border: none;
             padding: 12px 24px;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: 500;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            margin-top: 20px;
-            transition: background-color 0.2s;
+            transition: background 0.2s;
         }
         
         .save-button:hover {
-            background-color: #1d4ed8;
+            background: #0051D5;
         }
         
         .status {
@@ -162,94 +128,30 @@
         .status.show {
             opacity: 1;
         }
-        
-        .description {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Mindful Browsing Settings</h1>
-        <p class="subtitle">Customize when you receive mindfulness reminders based on your content consumption</p>
+        <h1>Instagram Content Tracker</h1>
+        <p class="subtitle">Track what type of content you view on Instagram</p>
         
-        <div class="section">
-            <h2>Content Thresholds</h2>
-            <p class="description">Set limits for different types of content before receiving a reminder</p>
-            
-            <div class="threshold-group">
-                <label>
-                    <span class="label-text">Posts viewed</span>
-                    <div class="input-group">
-                        <input type="range" id="postsRange" min="5" max="50" value="10">
-                        <span class="range-value" id="postsValue">10</span>
-                    </div>
-                </label>
+        <div class="api-section">
+            <div id="apiStatus" class="api-status disconnected">
+                ⚠️ No API token - Image analysis disabled
             </div>
             
-            <div class="threshold-group">
-                <label>
-                    <span class="label-text">Stories viewed</span>
-                    <div class="input-group">
-                        <input type="range" id="storiesRange" min="3" max="30" value="5">
-                        <span class="range-value" id="storiesValue">5</span>
-                    </div>
-                </label>
-            </div>
+            <label for="huggingFaceToken">Hugging Face API Token</label>
+            <input type="password" id="huggingFaceToken" placeholder="hf_..." />
             
-            <div class="threshold-group">
-                <label>
-                    <span class="label-text">Reels viewed</span>
-                    <div class="input-group">
-                        <input type="range" id="reelsRange" min="3" max="30" value="5">
-                        <span class="range-value" id="reelsValue">5</span>
-                    </div>
-                </label>
-            </div>
-            
-            <div class="threshold-group">
-                <label>
-                    <span class="label-text">Time spent (minutes)</span>
-                    <div class="input-group">
-                        <input type="range" id="timeRange" min="1" max="30" value="5">
-                        <span class="range-value" id="timeValue">5</span>
-                    </div>
-                </label>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Advanced Features</h2>
-            
-            <div class="toggle-group">
-                <span>Enable text analysis</span>
-                <label class="toggle">
-                    <input type="checkbox" id="textAnalysis" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <p class="description">Analyze post content to identify potentially harmful patterns (comparison, negative content)</p>
-            
-            <div class="toggle-group">
-                <span>Weighted scoring</span>
-                <label class="toggle">
-                    <input type="checkbox" id="weightedScoring" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <p class="description">Give higher weight to content that may impact well-being</p>
-            
-            <div class="threshold-group" id="weightedThresholdGroup">
-                <label>
-                    <span class="label-text">Weighted threshold</span>
-                    <div class="input-group">
-                        <input type="range" id="weightedRange" min="10" max="50" value="25">
-                        <span class="range-value" id="weightedValue">25</span>
-                    </div>
-                </label>
-                <p class="description">Lower values = more sensitive to harmful content</p>
+            <div class="help-text">
+                <strong>How to get your free token:</strong>
+                <ol>
+                    <li>Sign up at <a href="https://huggingface.co/join" target="_blank">huggingface.co</a> (free)</li>
+                    <li>Go to <a href="https://huggingface.co/settings/tokens" target="_blank">Settings → Access Tokens</a></li>
+                    <li>Click "New token" → Select "Read" → Create</li>
+                    <li>Copy and paste the token above</li>
+                </ol>
+                Free tier includes 30,000 image analyses per month.
             </div>
         </div>
         
