@@ -4,9 +4,7 @@
   "version": "1.0",
   "description": "Track what type of content you view on Instagram",
   "permissions": [
-    "storage",
-    "activeTab",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
     "*://*.instagram.com/*",
@@ -19,19 +17,12 @@
     {
       "matches": ["*://*.instagram.com/*"],
       "js": ["js/content-combined.js"],
-      "run_at": "document_idle",
-      "all_frames": false
+      "run_at": "document_idle"
     }
   ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
-  },
+  
   "options_page": "options.html",
+
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
