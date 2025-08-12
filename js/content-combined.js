@@ -63,41 +63,183 @@ let apiToken = null;
  * - emoji: Visual icon for the category
  * - keywords: Words to look for in captions (fallback when AI unavailable)
  */
+
 let contentCategories = {
   'beauty': { 
     count: 0, 
     emoji: '💄',
-    keywords: ['makeup', 'beauty', 'skincare', 'glow', 'skin', 'cosmetic', 'lipstick', 'mascara']
+    keywords: ['makeup', 'beauty', 'skincare', 'glow', 'skin', 'cosmetic', 'lipstick', 'mascara', 
+               'foundation', 'concealer', 'eyeshadow', 'eyeliner', 'blush', 'contour', 'highlight',
+               'bronzer', 'primer', 'serum', 'moisturizer', 'cleanser', 'toner', 'facial', 'acne',
+               'wrinkle', 'botox', 'filler', 'lashes', 'brows', 'manicure', 'pedicure', 'nails',
+               'hairstyle', 'haircut', 'hair color', 'balayage', 'salon', 'spa', 'pamper']
   },
   'fashion': { 
     count: 0, 
     emoji: '👗',
-    keywords: ['outfit', 'ootd', 'fashion', 'style', 'dress', 'wear', 'clothing', 'clothes']
+    keywords: ['outfit', 'ootd', 'fashion', 'style', 'dress', 'wear', 'clothing', 'clothes',
+               'designer', 'brand', 'luxury', 'haute couture', 'streetwear', 'casual', 'formal',
+               'accessories', 'jewelry', 'handbag', 'purse', 'shoes', 'heels', 'sneakers', 'boots',
+               'jeans', 'shirt', 'blouse', 'suit', 'jacket', 'coat', 'sweater', 'vintage', 'thrift',
+               'runway', 'model', 'trend', 'wardrobe', 'closet', 'shopping', 'boutique', 'fitting']
   },
   'food': { 
     count: 0, 
     emoji: '🍔',
-    keywords: ['food', 'eat', 'meal', 'recipe', 'delicious', 'yummy', 'cook', 'restaurant']
+    keywords: ['food', 'eat', 'meal', 'recipe', 'delicious', 'yummy', 'cook', 'restaurant',
+               'breakfast', 'lunch', 'dinner', 'brunch', 'snack', 'dessert', 'appetizer', 'entree',
+               'cuisine', 'chef', 'kitchen', 'baking', 'ingredients', 'tasty', 'flavor', 'spicy',
+               'sweet', 'savory', 'homemade', 'foodie', 'cafe', 'bar', 'cocktail', 'wine', 'beer',
+               'coffee', 'tea', 'smoothie', 'juice', 'vegan', 'vegetarian', 'diet', 'nutrition',
+               'protein', 'carbs', 'healthy eating', 'comfort food', 'takeout', 'delivery']
   },
   'fitness': { 
     count: 0, 
     emoji: '💪',
-    keywords: ['workout', 'gym', 'fitness', 'exercise', 'training', 'muscle', 'yoga', 'run']
+    keywords: ['workout', 'gym', 'fitness', 'exercise', 'training', 'muscle', 'yoga', 'run',
+               'cardio', 'weights', 'lifting', 'crossfit', 'pilates', 'spinning', 'cycling',
+               'marathon', 'triathlon', 'athlete', 'sports', 'basketball', 'football', 'soccer',
+               'tennis', 'swimming', 'boxing', 'mma', 'strength', 'endurance', 'flexibility',
+               'stretch', 'warmup', 'cooldown', 'reps', 'sets', 'gains', 'shredded', 'abs',
+               'biceps', 'squats', 'deadlift', 'bench press', 'protein shake', 'preworkout',
+               'recovery', 'rest day', 'personal trainer', 'fitfam', 'transformation']
   },
   'travel': { 
     count: 0, 
     emoji: '✈️',
-    keywords: ['travel', 'trip', 'vacation', 'explore', 'adventure', 'journey', 'visit', 'tourist']
+    keywords: ['travel', 'trip', 'vacation', 'explore', 'adventure', 'journey', 'visit', 'tourist',
+               'destination', 'flight', 'airport', 'hotel', 'airbnb', 'hostel', 'backpacking',
+               'sightseeing', 'landmark', 'monument', 'beach', 'mountain', 'city', 'country',
+               'abroad', 'overseas', 'passport', 'visa', 'luggage', 'suitcase', 'itinerary',
+               'wanderlust', 'nomad', 'roadtrip', 'cruise', 'resort', 'island', 'tropical',
+               'europe', 'asia', 'africa', 'americas', 'oceania', 'sunset', 'sunrise', 'view',
+               'landscape', 'culture', 'local', 'souvenir', 'photography', 'bucketlist']
   },
   'pets': { 
     count: 0, 
     emoji: '🐾',
-    keywords: ['dog', 'cat', 'pet', 'puppy', 'kitten', 'animal', 'fur baby', 'paw']
+    keywords: ['dog', 'cat', 'pet', 'puppy', 'kitten', 'animal', 'fur baby', 'paw', 'doggo',
+               'pupper', 'kitty', 'meow', 'woof', 'bark', 'adopt', 'rescue', 'shelter', 'breed',
+               'veterinary', 'vet', 'grooming', 'training', 'tricks', 'fetch', 'walk', 'leash',
+               'collar', 'toys', 'treats', 'cuddle', 'fluffy', 'cute', 'adorable', 'bird', 'fish',
+               'hamster', 'rabbit', 'bunny', 'guinea pig', 'reptile', 'turtle', 'snake', 'lizard',
+               'horse', 'pony', 'farm animals', 'exotic pets', 'pet parent', 'furbaby']
+  },
+  'friends': {
+    count: 0,
+    emoji: '👥',
+    keywords: ['friends', 'bestie', 'bff', 'squad', 'crew', 'gang', 'buddy', 'pal', 'mate',
+               'friendship', 'hangout', 'chill', 'party', 'gathering', 'reunion', 'meetup',
+               'girls night', 'boys night', 'sleepover', 'roadtrip', 'memories', 'throwback',
+               'group photo', 'selfie', 'groupie', 'besties', 'ride or die', 'partner in crime',
+               'social', 'fun times', 'good times', 'celebration', 'birthday', 'anniversary',
+               'together', 'bonding', 'laughing', 'jokes', 'pranks', 'adventures', 'memories']
+  },
+  'news': {
+    count: 0,
+    emoji: '📰',
+    keywords: ['news', 'breaking', 'headline', 'article', 'report', 'journalist', 'media',
+               'press', 'coverage', 'story', 'update', 'latest', 'current events', 'world news',
+               'local news', 'national', 'international', 'investigation', 'exclusive', 'interview',
+               'documentary', 'journalism', 'newspaper', 'magazine', 'broadcast', 'anchor',
+               'reporter', 'correspondent', 'analysis', 'opinion', 'editorial', 'column',
+               'fact check', 'source', 'developing', 'urgent', 'alert', 'announcement']
+  },
+  'politics': {
+    count: 0,
+    emoji: '🏛️',
+    keywords: ['politics', 'political', 'election', 'vote', 'voting', 'campaign', 'candidate',
+               'president', 'senator', 'congress', 'parliament', 'minister', 'government',
+               'democracy', 'republican', 'democrat', 'liberal', 'conservative', 'progressive',
+               'policy', 'legislation', 'bill', 'law', 'constitution', 'rights', 'freedom',
+               'protest', 'activism', 'rally', 'movement', 'petition', 'debate', 'polls',
+               'left wing', 'right wing', 'centrist', 'partisan', 'bipartisan', 'reform',
+               'corruption', 'scandal', 'impeachment', 'diplomacy', 'foreign policy']
+  },
+  'memes': {
+    count: 0,
+    emoji: '😂',
+    keywords: ['meme', 'memes', 'funny', 'lol', 'lmao', 'rofl', 'hilarious', 'joke', 'humor',
+               'comedy', 'viral', 'trending', 'relatable', 'mood', 'vibe', 'same', 'facts',
+               'savage', 'roast', 'burn', 'shade', 'tea', 'spill', 'iconic', 'legendary',
+               'cursed', 'blessed', 'wholesome', 'dank', 'shitpost', 'troll', 'rickroll',
+               'stonks', 'bruh', 'oof', 'yeet', 'based', 'cringe', 'cope', 'seethe', 'ratio',
+               'no cap', 'fr fr', 'bussin', 'slaps', 'hits different', 'iykyk', 'ifykyk']
+  },
+  'tech': {
+    count: 0,
+    emoji: '💻',
+    keywords: ['tech', 'technology', 'computer', 'laptop', 'phone', 'smartphone', 'iphone',
+               'android', 'app', 'software', 'hardware', 'gadget', 'device', 'innovation',
+               'ai', 'artificial intelligence', 'machine learning', 'coding', 'programming',
+               'developer', 'engineer', 'startup', 'silicon valley', 'internet', 'wifi',
+               'blockchain', 'crypto', 'bitcoin', 'nft', 'metaverse', 'vr', 'ar', 'gaming',
+               'console', 'pc', 'specs', 'upgrade', 'hack', 'cybersecurity', 'data', 'cloud',
+               'server', 'database', 'algorithm', 'automation', 'robot', 'drone', 'smart home']
+  },
+  'music': {
+    count: 0,
+    emoji: '🎵',
+    keywords: ['music', 'song', 'album', 'artist', 'band', 'concert', 'live', 'performance',
+               'tour', 'festival', 'spotify', 'playlist', 'mixtape', 'track', 'single', 'ep',
+               'record', 'vinyl', 'genre', 'pop', 'rock', 'hip hop', 'rap', 'country', 'jazz',
+               'classical', 'electronic', 'edm', 'house', 'techno', 'indie', 'alternative',
+               'lyrics', 'melody', 'beat', 'rhythm', 'bass', 'guitar', 'drums', 'piano',
+               'singer', 'vocalist', 'musician', 'producer', 'dj', 'remix', 'cover', 'acoustic']
+  },
+  'art': {
+    count: 0,
+    emoji: '🎨',
+    keywords: ['art', 'artist', 'artwork', 'painting', 'drawing', 'sketch', 'illustration',
+               'design', 'graphic', 'digital art', 'creative', 'creativity', 'gallery', 'museum',
+               'exhibition', 'sculpture', 'photography', 'photo', 'portrait', 'landscape',
+               'abstract', 'modern art', 'contemporary', 'street art', 'graffiti', 'mural',
+               'canvas', 'brush', 'paint', 'watercolor', 'acrylic', 'oil painting', 'charcoal',
+               'pencil', 'ink', 'masterpiece', 'aesthetic', 'visual', 'composition', 'color',
+               'palette', 'texture', 'style', 'technique', 'commission', 'portfolio']
+  },
+  'business': {
+    count: 0,
+    emoji: '💼',
+    keywords: ['business', 'entrepreneur', 'startup', 'company', 'corporate', 'office', 'work',
+               'career', 'job', 'professional', 'networking', 'linkedin', 'resume', 'interview',
+               'meeting', 'conference', 'presentation', 'pitch', 'investor', 'funding', 'venture',
+               'capital', 'revenue', 'profit', 'sales', 'marketing', 'branding', 'strategy',
+               'management', 'leadership', 'ceo', 'founder', 'executive', 'team', 'employee',
+               'workplace', 'productivity', 'success', 'goals', 'hustle', 'grind', 'boss',
+               'promotion', 'client', 'customer', 'b2b', 'b2c', 'ecommerce', 'retail']
+  },
+  'education': {
+    count: 0,
+    emoji: '📚',
+    keywords: ['education', 'school', 'university', 'college', 'student', 'study', 'learning',
+               'class', 'course', 'lecture', 'professor', 'teacher', 'academic', 'degree',
+               'diploma', 'graduation', 'graduate', 'undergraduate', 'phd', 'masters', 'thesis',
+               'research', 'library', 'books', 'reading', 'homework', 'assignment', 'exam',
+               'test', 'quiz', 'grades', 'gpa', 'scholarship', 'campus', 'dorm', 'semester',
+               'knowledge', 'skills', 'online course', 'webinar', 'workshop', 'certification',
+               'training', 'tutor', 'mentor', 'stem', 'science', 'math', 'engineering']
+  },
+  'sports': {
+    count: 0,
+    emoji: '⚽',
+    keywords: ['sports', 'game', 'match', 'tournament', 'championship', 'league', 'team',
+               'player', 'athlete', 'coach', 'stadium', 'arena', 'field', 'court', 'score',
+               'win', 'loss', 'victory', 'defeat', 'playoff', 'finals', 'season', 'draft',
+               'football', 'soccer', 'basketball', 'baseball', 'hockey', 'tennis', 'golf',
+               'cricket', 'rugby', 'boxing', 'mma', 'ufc', 'olympics', 'medal', 'record',
+               'champion', 'mvp', 'goat', 'rookie', 'transfer', 'signing', 'contract', 'fan',
+               'supporter', 'rivalry', 'derby', 'espn', 'highlights', 'replay', 'referee']
   },
   'lifestyle': { 
     count: 0, 
     emoji: '🏠',
-    keywords: ['home', 'decor', 'life', 'daily', 'morning', 'routine', 'cozy', 'living']
+    keywords: ['home', 'decor', 'life', 'daily', 'morning', 'routine', 'cozy', 'living',
+               'interior', 'design', 'furniture', 'minimalist', 'organization', 'cleaning',
+               'motivation', 'inspiration', 'selfcare', 'wellness', 'mindfulness', 'meditation',
+               'journal', 'productivity', 'habits', 'goals', 'aesthetic', 'vibes', 'mood board',
+               'pinterest', 'diy', 'crafts', 'hobby', 'collection', 'plants', 'succulents',
+               'candles', 'hygge', 'bedroom', 'kitchen', 'bathroom', 'apartment', 'house']
   },
   'other': { 
     count: 0, 
